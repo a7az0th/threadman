@@ -13,7 +13,7 @@ namespace a7az0th {
 
 
 	// Return the number of processors available on the system
-	int getProcessorCount(void) {
+	static int getProcessorCount(void) {
 		const int cpu_count = std::thread::hardware_concurrency();
 		return (cpu_count < 2) ? 1 : cpu_count;
 	}
@@ -277,7 +277,7 @@ namespace a7az0th {
 		}
 	};
 
-	void MultiThreaded::run(ThreadManager& threadman, int numThreads) {
+	inline void MultiThreaded::run(ThreadManager& threadman, int numThreads) {
 		threadman.run(this, numThreads);
 	}
 
