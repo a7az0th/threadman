@@ -14,7 +14,7 @@ public:
 
 	// Returns the elapsed time in seconds
 	float elapsedSeconds() {
-		auto& total_ms = std::chrono::duration_cast<std::chrono::milliseconds>(endPoint - startPoint);
+		const auto& total_ms = std::chrono::duration_cast<std::chrono::milliseconds>(endPoint - startPoint);
 		return total_ms.count() * 0.001f;
 	}
 
