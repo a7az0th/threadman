@@ -249,7 +249,13 @@ namespace a7az0th {
 			}
 
 			// Wait for the last thread to signal and exit the wait loop.
-			waitForThreads.wait();
+			// Check the number of working threads before waiting.
+			// In the odd case where all theads manage to finish execution before
+			// the main thread gets here the event has already been signalled
+			// and waiting on it again will trigger a deadlock
+			if (counter) {
+				waitForThreads.wait();
+			}
 
 			// round robin all threads until they come to rest
 			while (1) {
