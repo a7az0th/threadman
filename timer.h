@@ -22,7 +22,7 @@ public:
 
 	// Returns the elapsed time in the precision specified
 	int64 elapsed(Precision prec) {
-		int64 val = 0.f;
+		int64 val = 0;
 		switch (prec) {
 		case Seconds: {
 			const std::chrono::seconds& total_s = std::chrono::duration_cast<std::chrono::seconds>(endPoint - startPoint);
