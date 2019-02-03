@@ -4,6 +4,8 @@
 
 namespace a7az0th {
 
+typedef long long int int64 ;
+
 class Timer {
 public:
 	enum Precision {

@@ -15,10 +15,11 @@ private:
 };
 
 struct B : MultiThreadedFor {
-	B(int* arr): buff(arr) {}
+	B(int* arr, int size): buff(arr) {
+		memset(buff, 0, sizeof(int)*size);
+	}
 	virtual void body(int index, int threadIdx, int numThreads) override {
-		buff[index] = threadIdx;
-		printf("Thread %d processing index %d\n", threadIdx, index);
+		buff[threadIdx]++;
 	}
 private:
 	int *buff;
@@ -32,11 +33,14 @@ int main() {
 
 	ThreadManager threadman;
 
-	A example;
-	example.run(threadman, numThreads);
+	//A example;
+	//example.run(threadman, numThreads);
 
-	int arr[50000];
-	B b(arr);
-	b.run(threadman, 5000, numThreads);
+	int arr[50];
+	B b(arr,50);
+	b.run(threadman, 50000, numThreads);
+	for (int i = 0 ; i < numThreads; i++) {
+		printf("Thread %d processed %d elements\n", i, arr[i]);
+	}
 	return 0;
 }

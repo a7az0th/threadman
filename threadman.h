@@ -31,7 +31,18 @@ namespace a7az0th {
 		void leave(void) { csect.unlock(); }
 	};
 
-	// A simple blocking event used in inter-thread comminication
+	struct MutexRAII {
+		MutexRAII(Mutex& m) : mutex(m) {
+			mutex.enter();
+		}
+		~MutexRAII() {
+			mutex.leave();
+		}
+	private:
+		Mutex& mutex;
+	};
+
+	// A simple blocking event used in inter-thread communication
 	// Used to signal the waiting threads that a condition has been met
 	class Event {
 		std::condition_variable c;
@@ -125,12 +136,14 @@ namespace a7az0th {
 			volatile ThreadState state; // The state of the current thread.
 			MultiThreaded *algorithm;   // The algorithm the thread is going to execute
 			std::atomic<int>* counter;  // A pointer to the atomic active thread counter. The threadman gets signalled when this reaches zero
+			volatile bool* jobsDone;
 		} info[MAX_CPU_COUNT];
 
 		int threadsInPool;        // Number of threads currently inside the threadpool
+		bool workComplete;        // A flag indicating that all worker threads have finished
 		std::atomic<int> counter; // An atomic counter. Determines the number of currently working threads. Used to signal the main thread when all work is done
 		Event waitForThreads;     // A wait condifion. The threadmanager waits on this while the threads are working.
-
+		//volatile ThreadState state; // The state of the threadman main thread.
 
 		// Spawned threads enter here.
 		// When a thread comes here it will enter idle state and wait for the thread manager to release it.
@@ -167,6 +180,7 @@ namespace a7az0th {
 					if (0 == --cnt) {
 						// If this is the last threads
 						// Signal the thread manager that the main thread can continue.
+						*info->jobsDone = true;
 						info->releaseMainThread->signal();
 					}
 					break;
@@ -194,7 +208,7 @@ namespace a7az0th {
 			ti.releaseMainThread = &waitForThreads; // Give the workers a way to signal the main thread when they are done
 			ti.algorithm = NULL;                    // Set the job to NULL (initially)
 			ti.counter = &counter;
-
+			ti.jobsDone = &workComplete;
 			// Run a thread with the context provided and get a pointer to it.
 			ti.handle = std::thread(&exec, &ti);
 
@@ -202,7 +216,7 @@ namespace a7az0th {
 			++threadsInPool;
 
 			// Update the number of currently active threads throughout all thread contexts
-			for (int i = threadsInPool - 1; i >= 0; i--) {
+			for (int i = 0; i < threadsInPool; i++) {
 				info[i].numThreads = threadsInPool;
 			}
 		}
@@ -232,6 +246,7 @@ namespace a7az0th {
 			}
 
 			counter = numThreads;
+			workComplete = false;
 			// For each thread
 			for (int i = 0; i < numThreads; i++) {
 				info[i].index = i;               // Set its index
@@ -249,11 +264,12 @@ namespace a7az0th {
 			}
 
 			// Wait for the last thread to signal and exit the wait loop.
-			// Check the number of working threads before waiting.
-			// In the odd case where all theads manage to finish execution before
-			// the main thread gets here the event has already been signalled
-			// and waiting on it again will trigger a deadlock
-			if (counter) {
+			//The check is in a loop to guard against spurious wakes.
+			//We check on a flag different from the wait condition as the flag is persistent.
+			//If all worker threads complete the job and signal before the main thread reaches this line
+			//we will enter a deadlock as the main thread will sleep here forever. With the flag
+			//the signalling is not lost
+			while (!workComplete) {
 				waitForThreads.wait();
 			}
 

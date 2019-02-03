@@ -3,5 +3,15 @@ project (thrman)
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-add_executable(thrman main.cpp)
+set(HEADERS
+	timer.h
+	threadman.h
+)
+
+set(SOURCES
+	main.cpp
+)
+
+
+add_executable(thrman ${HEADERS} ${SOURCES})
 
